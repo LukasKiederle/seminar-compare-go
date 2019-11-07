@@ -1,4 +1,5 @@
-<h1 style="text-align: center;">Coq compared with ...</h1>
+<h1 align="center">Coq compared with ...</h1>
+<p align="center">by Lukas Kiederle</p>
 
 ## Table of Contents
 1. [Motivation](#motivation)
