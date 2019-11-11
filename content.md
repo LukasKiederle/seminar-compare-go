@@ -139,3 +139,5 @@ like goland does with channels, python uses the `.join()`-method.
 
 ## Sources
 * https://pragmacoders.com/blog/multithreading-in-go-a-tutorial
+* https://www.geeksforgeeks.org/multithreading-in-python-set-2-synchronization/
+* https://github.com/jweigend/concepts-of-programming-languages
