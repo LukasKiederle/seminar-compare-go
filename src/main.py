@@ -7,3 +7,5 @@ if __name__ == '__main__':
         # Setting daemon to True will let the main thread exit even though the workers are blocking
         server.daemon = True
         server.start()
+        # wait for the thread to terminate
+        server.join()

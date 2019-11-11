@@ -20,10 +20,12 @@ Go and Python when building a simulated cluster which persists its status
 * Basics
 
 ## Parallel processing
+What are the differences from golang to python when it comes to
+parallel programming.
 
 #### Goroutines:
 In go you can just make a "thread" by writing the **go** keyword
-in front of a function like in the following example.
+in front of a function like displayed in the following example.
 
 ``` go
 package main
@@ -46,9 +48,11 @@ func main() {
 ```
 Depending on which task is being executed first, `a = b * b` or
 the `go func()` the result will differ. Possible results are: 
-**a = 4, b = 8 or a = 4, b = 2**
-For this problem of inconsistency golang uses channels. In the
-following example almost same code is being shown but returning 
+**a = 4, b = 8 or a = 4, b = 2**.
+This is called asynchronous execution.
+
+To execute goroutines synchronous golang uses channels.
+In the following example almost same code is being shown but returning 
 a consistent result.
 
 ```go
@@ -81,11 +85,42 @@ into `operationDone` the program is able to wait at the call
 (Like a queue).
 As soon as `<-operationDone` has a value the program goes ahead.
 
-* Goroutines:
-    * basic
-    * channels
-* Python: 
-    * 
+#### Python parallel programming:
+Python offers a **Thread**-Class for parallel programming.
+A class which can be used as thread looks like the following code block.
+
+```python
+from threading import Thread
+
+class ServerThread(Thread):
+
+    def __init__(self, counter):
+        Thread.__init__(self)
+        self.counter = counter
+
+    def run(self):
+        try:
+            for i in range(0, self.counter):
+                print(i)
+        finally:
+            print("Thread finished")
+```
+```python
+from src.server.serverThread import ServerThread
+
+if __name__ == '__main__':
+
+    for x in range(8):
+        server = ServerThread(x)
+        server.start()
+        # wait for the thread to terminate
+        server.join()
+```
+This thread is a class which has a run function that counts down
+one by one from a given value and prints every new
+decrement in the terminal. Once it has reached 0 the thread
+finishes and stops itself. To be able to call the threads synchronous
+like goland does with channels, python uses the `.join()`-method.
 
 ## The raft cluster implemented
 
