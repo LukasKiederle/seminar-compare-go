@@ -9,14 +9,49 @@
 3. [Sources](#sources)
 
 ## Motivation
-This paper is going to reflect the technical differences of
+This paper is going to reflect the technical differences between
 Go and Python when building a simulated cluster which persists its status
- within all of its nodes.
+ within all of its nodes. As soon as one node is updated, all the other
+ nodes get informed about the new status.
 
 
 ## The raft cluster
 * Theory
 * Basics
+
+## Parallel processing
+
+#### Goroutines:
+In go you can just make a "thread" by writing the **go** keyword
+in front of a function like in the following example.
+
+``` go
+package main
+
+import (
+  "fmt"
+)
+
+func main() {
+  a, b := 1, 2
+
+  go func() {
+    b = a * b
+  }()
+
+  a = b * b
+
+  fmt.Printf("a = %d, b = %d\n", a, b)
+}
+```
+Depending on which task is being executed first, `a = b * b` or
+the `go func()` the result will differ. Possible results are: 
+**a = 4, b = 8 or a = 4, b = 2**
+
+* Goroutines:
+    * channels
+* Python: 
+    * 
 
 ## The raft cluster implemented
 
@@ -34,3 +69,4 @@ Go and Python when building a simulated cluster which persists its status
 * 
 
 ## Sources
+* https://pragmacoders.com/blog/multithreading-in-go-a-tutorial
