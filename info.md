@@ -15,5 +15,5 @@
 -> Einschätzung bezüglich wie gut sich eine Programmiersprache für ein Problem eignet
 * Abgabetermin 9.01.2020 (da wird auch die Präsi sein)
 * Vortrag 15min
-* 7-10 seiten
 * 2 Termine: Brückstraße 1/QAWARE, Rosenheim
+* http://markdown2pdf.com/ 7-10 Seiten als PDF
