@@ -1,50 +1,57 @@
-from src.kvstore.core.raft.cluster import Cluster
+import random
+from threading import Timer, Lock
+
 from src.kvstore.core.raft.constant import FOLLOWER, CANDIDATE, LEADER
+from src.kvstore.core.raft.repeatingtimer import RepeatingTimer
 from src.kvstore.core.raft.replicatedlog import ReplicatedLog
 from src.kvstore.core.raft.statemachine import StateMachine
+from src.kvstore.core.raft.waitgroup import WaitGroup
 
 
 class Node:
 
     def __init__(self, id):
         self.id = id
-        self.statemachine = StateMachine
-        self.replicatedlog = ReplicatedLog
-        self.election_timer = "TODO"
-        self.heartbeat_timer = "TODO"
+        self.statemachine = StateMachine()
+        self.replicatedlog = ReplicatedLog()
+        self.election_timer = RepeatingTimer(5 + (random.randrange(10) / 10), self.election_timeout)  # 5s +- 1s
+        self.heartbeat_timer = RepeatingTimer(2 + (random.randrange(10) / 10),
+                                              self.heatbeat_timeout)  # 2s +- 1s to avoid conflicts
         self.current_term = 0
         self.votedFor = None
         self.stopped = False
-        self.muted = False
-        self.cluster = Cluster
+        self.mutex = None
+        self.cluster = None
 
     def start(self, cluster):
-        # TODO locks
-        self.stopped = False
-        self.cluster = cluster
-
-        # TODO electionTimer
+        self.mutex = Lock()
+        with self.mutex:
+            self.stopped = False
+            self.cluster = cluster
+            self.election_timer.start()
 
     def stop(self):
-        # TODO locks
+        self.mutex = Lock()
+        with self.mutex:
+            self.stopped = True
 
-        self.stopped = True
+            self.heartbeat_timer.cancel()
+            self.election_timer.cancel()
 
-        # TODO Timers
-
-        self.statemachine.next(FOLLOWER)
+            self.statemachine.next(FOLLOWER)
 
     def election_timeout(self):
-        # TODO locks
+        self.mutex = Lock()
+        with self.mutex:
 
-        if self.stopped:
-            return
+            if self.stopped:
+                return
 
-        print('Election timeout.')
+            print('Election timeout.')
 
-        if self.is_leader():
-            raise Exception('The election timeout should not happen, when a node is LEADER.')
-        self.start_election_process()
+            if self.is_leader():
+                raise Exception('The election timeout should not happen, when a node is LEADER.')
+            self.start_election_process()
 
     def start_election_process(self):
         self.current_term += 1
@@ -53,22 +60,38 @@ class Node:
         election_won = self.execute_election()
 
         if election_won:
-            print("Election won. Now acting as leader.")
+            print("[" + str(self.id) + "] Election won. Now acting as leader.")
             self.switch_to_leader()
         else:
             print("Election was not won. Reset election timer")
             self.statemachine.next(FOLLOWER)
-        # TODO n.electionTimer.resetC < - true  // try again, split vote or cluster down
+        # try again, split vote or cluster down
+        self.election_timer.cancel()
+        self.election_timer.start()
 
     def execute_election(self):
         print("-> Election")
         self.votedFor = self.id  # vote for yourself
 
-        # TODO synchstuff
+        wg = WaitGroup()
 
         nodes = self.cluster.get_remote_followers(self.id)
         votes = []
-        # TODO node voting
+
+        wg.add(len(nodes))
+
+        def send_votes():
+            term, ok = node.request_vote(self.current_term, self.id, 0, 0)
+            if term > self.current_term:
+                # not not needed
+                pass
+            votes.append(ok)
+            wg.done()
+
+        for i, node in enumerate(nodes):
+            send_votes()
+
+        wg.wait()
 
         number_of_votes = 1  # Master votes for himself
         for vote in votes:
@@ -83,40 +106,54 @@ class Node:
 
     # SwitchToLeader does the state change from CANDIDATE to LEADER.
     def switch_to_leader(self):
+        self.election_timer.cancel()
+        self.heartbeat_timer.cancel()
+
         self.statemachine.next(LEADER)
-        # TODO
-        self.heartbeat_timer = "TODO"
-        self.election_timer = "TODO"
+        self.heartbeat_timer.start()
 
     # == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == =
     # Leader only functions
     # == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == =
 
     def heatbeat_timeout(self):
-        # TODO locks
+        self.mutex = Lock()
+        with self.mutex:
 
-        if self.stopped:
-            return
+            if self.stopped:
+                return
 
-        if not self.is_leader():
-            raise Exception('sendHeartbeat should only run in LEADER state!')
+            if not self.is_leader():
+                raise Exception('sendHeartbeat should only run in LEADER state!')
 
-        print('-> Heartbeat')
+            print('-> Heartbeat')
 
-        # TODO sync stuff
+            wg = WaitGroup()
 
-        nodes = self.cluster.get_remote_followers(self.id)
+            nodes = self.cluster.get_remote_followers(self.id)
 
-        result = []
+            result = []
 
-        # TODO recieve hearbeat answeres
+            wg.add(len(nodes))
 
-        print('<- Heartbeat')
+            def send_votes():
+                term, ok = node.append_entries(self.current_term, self.id, 0, 0, None, 0)
+                if term > self.current_term:
+                    node.switch_to_follower()
+                result.append(ok)
+                wg.done()
+
+            for i, node in enumerate(nodes):
+                send_votes()
+
+            wg.wait()
+
+            print('<- Heartbeat')
 
     # SwitchToFollower switches a LEADER or CANDIDATE to the follower state
     def switch_to_follower(self):
         if self.is_leader():
-            # TODO heartbeat stuff
+            self.heartbeat_timer.cancel()
             self.statemachine.next(FOLLOWER)
         elif self.is_candidate():
             self.statemachine.next(FOLLOWER)
@@ -126,32 +163,35 @@ class Node:
     # == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == =
 
     def append_entries(self, term, leader_id, prev_log_index, prev_log_termin, entries, leader_commit):
-        # TODO sync stuff
+        self.mutex = Lock()
+        with self.mutex:
 
-        if self.stopped:
-            return self.current_term, False  # stopped node
+            if self.stopped:
+                return self.current_term, False  # stopped node
 
-        if term < self.current_term:
-            return self.current_term, False  # 5.1
+            if term < self.current_term:
+                return self.current_term, False  # 5.1
 
-        # see 5.1 - If one servers term is smaller than the others, then it updates its current term to the larger
-        # value.
-        if term > self.current_term:
-            self.current_term = term
+            # see 5.1 - If one servers term is smaller than the others, then it updates its current term to the larger
+            # value.
+            if term > self.current_term:
+                self.current_term = term
 
-            if self.is_leader() or self.is_candidate():
-                self.switch_to_follower()
-                return self.current_term, False
+                if self.is_leader() or self.is_candidate():
+                    self.switch_to_follower()
+                    return self.current_term, False
 
-        if entries is None or len(entries) == 0:
-            print('Heartbeat received. Reset election timer.')
-            # TODO n.electionTimer.resetC <- true
+            if entries is None or len(entries) == 0:
+                print('Heartbeat received. Reset election timer.')
+                # n.electionTimer.resetC <- true
+                self.election_timer.cancel()
+                self.election_timer.start()
 
-        else:
-            # TODO replicate logs
-            print("[%s] AppendEntries replicate logs on Node: %s", self.statemachine.current, self.id)
+            else:
+                # TODO replicate logs
+                print("[%s] AppendEntries replicate logs on Node: %s", self.statemachine.current, self.id)
 
-        return self.current_term, True
+            return self.current_term, True
 
     # == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == =
     # Follower RPC - Leader Election
@@ -161,32 +201,35 @@ class Node:
     # It returns the current term to update the candidate
     # It returns true when the candidate received vote.
     def request_vote(self, term, candidate_id, last_log_index, last_log_term):
-        # TODO sync stuff
+        self.mutex = Lock()
+        with self.mutex:
 
-        if self.stopped:
-            return self.current_term, False
+            if self.stopped:
+                return self.current_term, False
 
-        # TODO n.electionTimer.resetC <- true
+            # n.electionTimer.resetC <- true
+            self.election_timer.cancel()
+            self.election_timer.start()
 
-        # see RequestVoteRPC receiver implementation 1
-        if term < self.current_term:
-            return self.current_term, False
+            # see RequestVoteRPC receiver implementation 1
+            if term < self.current_term:
+                return self.current_term, False
 
-        # see RequestVoteRPC receiver implementation 2
-        if self.votedFor is not None and term == self.current_term:
-            return self.current_term, False
+            # see RequestVoteRPC receiver implementation 2
+            if self.votedFor is not None and term == self.current_term:
+                return self.current_term, False
 
-        # see 5.1 - If one servers term is smaller than the others, then it updates its current term to the larger
-        # value.
-        if term > self.current_term:
-            self.current_term = term
-            if self.is_candidate() or self.is_leader():
-                self.switch_to_follower()
+            # see 5.1 - If one servers term is smaller than the others, then it updates its current term to the larger
+            # value.
+            if term > self.current_term:
+                self.current_term = term
+                if self.is_candidate() or self.is_leader():
+                    self.switch_to_follower()
 
-        self.votedFor = candidate_id
-        print("RequestVote received from Candidate %v. Vote OK.", candidate_id)
-        
-        return self.current_term, True
+            self.votedFor = candidate_id
+            print("RequestVote received from Candidate " + str(candidate_id) + ". Vote OK.")
+
+            return self.current_term, True
 
     # == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == =
     # Helper Methods for nodes
@@ -203,5 +246,3 @@ class Node:
 
     def is_candidate(self):
         return self.statemachine.current == CANDIDATE
-
-        # TODO createPeriodicTimer

@@ -6,13 +6,15 @@ class Cluster:
 
     # If there is a leader node, this functions returns all follower nodes for this node
     def get_remote_followers(self, leader_id):
-        if leader_id != self.return_node_leader():
-            raise Exception('This leader is not in this cluster!')
-        return self.allNodes.remove(leader_id)
+        # if leader_id != self.return_node_leader():
+        #   raise Exception('This leader is not in this cluster!')
+        if leader_id in self.allNodes:
+            return self.allNodes.remove(leader_id)
+        return self.allNodes
 
     def start_all(self):
         for node in self.allNodes:
-            node.start()
+            node.start(self)
 
     def stop_all(self):
         for node in self.allNodes:
@@ -49,4 +51,4 @@ class Cluster:
         elif follower_count < len(self.allNodes) / 2:
             raise Exception("there are not enough followers -> split brain")
 
-        return True
+        return True, None
