@@ -3,6 +3,8 @@ from src.kvstore.core.raft.constant import FOLLOWER, CANDIDATE, LEADER
 
 class StateMachine:
 
+    current = None
+
     def __init__(self):
         self.current = FOLLOWER  # Follower
 
