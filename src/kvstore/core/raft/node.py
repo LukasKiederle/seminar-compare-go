@@ -132,23 +132,26 @@ class Node:
 
             nodes = self.cluster.get_remote_followers(self.id)
 
-            result = []
+            if len(nodes) > 1:
+                result = []
 
-            wg.add(len(nodes))
+                wg.add(len(nodes))
 
-            def send_votes():
-                term, ok = node.append_entries(self.current_term, self.id, 0, 0, None, 0)
-                if term > self.current_term:
-                    node.switch_to_follower()
-                result.append(ok)
-                wg.done()
+                def send_votes():
+                    term, ok = node.append_entries(self.current_term, self.id, 0, 0, None, 0)
+                    if term > self.current_term:
+                        node.switch_to_follower()
+                    result.append(ok)
+                    wg.done()
 
-            for i, node in enumerate(nodes):
-                send_votes()
+                for i, node in enumerate(nodes):
+                    send_votes()
 
-            wg.wait()
+                wg.wait()
 
-            print('<- Heartbeat')
+                print('<- Heartbeat')
+            else:
+                print("Cluster contains only one node")
 
     # SwitchToFollower switches a LEADER or CANDIDATE to the follower state
     def switch_to_follower(self):

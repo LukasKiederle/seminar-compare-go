@@ -21,12 +21,14 @@ class Cluster:
             node.stop()
 
     def stop_leader(self):
-        self.return_node_leader().stop()
+        leader = self.return_node_leader()
+        leader.stop()
+        return leader
 
     def return_node_leader(self):
         for node in self.allNodes:
             if node.is_leader():
-                return node.id
+                return node
         raise Exception('No leader in this cluster!')
 
     # Checks if the cluster is in a valid state

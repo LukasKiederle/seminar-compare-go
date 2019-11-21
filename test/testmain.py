@@ -1,12 +1,11 @@
-import sys
 import time
 import unittest
+from asyncio import Lock
 
 from src.kvstore.core.raft.cluster import Cluster
 from src.kvstore.core.raft.constant import FOLLOWER, CANDIDATE, LEADER
 from src.kvstore.core.raft.node import Node
 from src.kvstore.core.raft.statemachine import StateMachine
-from src.server.serverThread import ServerThread
 from src.kvstore.core.kvstoreimpl import KvStore
 
 
@@ -49,7 +48,7 @@ class TestStateMachine(unittest.TestCase):
 
 
 class TestClusterWithNodes(unittest.TestCase):
-    def test_cluster_start(self):
+    def test_cluster_start_stop_and_election(self):
         n1 = Node(0)
         n2 = Node(1)
         n3 = Node(2)
@@ -70,6 +69,76 @@ class TestClusterWithNodes(unittest.TestCase):
 
         cluster.stop_all()
 
+        time.sleep(2) # wait for grace to shutdown
+
+    def test_heartbeat(self):
+        n1 = Node(0)
+        nodes = [n1]
+
+        cluster = Cluster(nodes)
+        cluster.start_all()
+
+        # startHeartbeat is only allowed in leader state
+        n1.statemachine.next(CANDIDATE)
+        n1.statemachine.next(LEADER)
+        n1.heartbeat_timer.cancel()
+        n1.heartbeat_timer.start()
+
+        time.sleep(10) # Wait 2s => check console output
+        n1.stop()
+
+    def test_failover(self):
+        n1 = Node(0)
+        n2 = Node(1)
+        n3 = Node(2)
+        n4 = Node(3)
+        n5 = Node(4)
+
+        nodes = [n1, n2, n3, n4, n5]
+
+        cluster = Cluster(nodes)
+
+        cluster.start_all()
+        cluster.stop_all()
+        time.sleep(5)
+        cluster.stop_all()
+
+        time.sleep(5)
+
+        cluster.stop_leader()
+
+        time.sleep(10)
+
+        # should fail
+        ok, err = cluster.check()
+        self.assertTrue(not ok)
+
+    def test_failover_resume(self):
+        n1 = Node(0)
+        n2 = Node(1)
+        n3 = Node(2)
+        n4 = Node(3)
+        n5 = Node(4)
+
+        nodes = [n1, n2, n3, n4, n5]
+
+        cluster = Cluster(nodes)
+
+        cluster.start_all()
+
+        time.sleep(10)
+
+        stopped_leader = cluster.stop_leader()
+
+        time.sleep(10)
+
+        # resume old leader -> as follower
+        stopped_leader.start(cluster)
+
+        time.sleep(2)
+        ok, err = cluster.check()
+        self.assertTrue(ok)
+
     def test_if_timer_time_differs(self):
         n1 = Node(0)
         n2 = Node(1)
@@ -83,29 +152,10 @@ class TestClusterWithNodes(unittest.TestCase):
         print("n4: " + str(n4.election_timer.interval))
         print("n5: " + str(n5.election_timer.interval))
 
-        # fails sometimes :)
+        # check console output
+        # fails sometimes
         self.assertNotEqual(n1.election_timer.interval, n2.election_timer.interval
                             or n1.election_timer.interval, n2.election_timer.interval)
-
-
-class TestServerThreadsWithRaft(unittest.TestCase):
-
-    def test_numberofthreadsstarted(self):
-        thread_number = 8
-        threads_started_counter = 0
-
-        for x in range(thread_number):
-            server = ServerThread(x)
-            # Setting daemon to True will let the main thread exit even though the workers are blocking
-            server.daemon = True
-            server.start()
-            threads_started_counter += 1
-
-        while threads_started_counter < 8:
-            pass
-
-        self.assertEqual(threads_started_counter, thread_number)
-
 
 if __name__ == '__main__':
     unittest.main()
