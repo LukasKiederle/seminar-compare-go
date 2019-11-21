@@ -1,11 +1,10 @@
+import sys
 import time
 import unittest
-from threading import Timer
 
 from src.kvstore.core.raft.cluster import Cluster
 from src.kvstore.core.raft.constant import FOLLOWER, CANDIDATE, LEADER
 from src.kvstore.core.raft.node import Node
-from src.kvstore.core.raft.repeatingtimer import RepeatingTimer
 from src.kvstore.core.raft.statemachine import StateMachine
 from src.server.serverThread import ServerThread
 from src.kvstore.core.kvstoreimpl import KvStore
@@ -63,15 +62,13 @@ class TestClusterWithNodes(unittest.TestCase):
 
         cluster.start_all()
 
-        # time.sleep(10)
+        time.sleep(10)
 
-        # ok, err = cluster.check()
+        ok, err = cluster.check()
 
-        # self.assertTrue(ok)
+        self.assertTrue(ok)
 
-        # cluster.stop_all()
-
-        # time.sleep(5)
+        cluster.stop_all()
 
     def test_if_timer_time_differs(self):
         n1 = Node(0)
