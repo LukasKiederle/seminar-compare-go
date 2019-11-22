@@ -15,37 +15,63 @@ omnipresent. For example databases like [Elastic Search](https://www.elastic.co/
 [Docker Swarm](https://docs.docker.com/engine/swarm/) need to deal with this efficiently in order to work reliable.
 
 This paper is going to reflect the technical differences between
-Go and Python when building a simulated cluster which persists its status
+go and python when building a simulated cluster which persists its status
  within all of its nodes. This is accomplished with the raft algorithm which was
  introduced by Diego Ongaro and John Ousterhou in 2014.
 
 
-## The raft algortihm
+## The raft algorithm
+Raft is an understandable distributed consensus algorithm.
+It was created based on the consensus algorithm [paxos](https://lamport.azurewebsites.net/pubs/lamport-paxos.pdf).
+The key goal was to develop an alternative for paxos which is much easier
+to understand and programmable.
 
-#### Basics
-* Raft Understandable Distributed Consensus/Agreement
-* x amount of nodes
-* node stores single value
-* client which sends info to the server
-* multiple nodes -> how come to an agreement -> thats the problem 
-* a node can have 3 states: FOLLOWER, CANDIDATE, LEADER
-* all nodes start in the FOLLOWER state
-* If followers don't hear from leader they can become candidate
-* The candidate requests votes from each node in the cluster
-* The nodes will replay with their vote
-* The candidate becomes the leader if it gets votes from a majority of nodes.
-* Thats a leader election
-* All changes to the system now go through the leader.
-* 2-Phase commit
-* Each change is added as an entry in the node's log.
-* The commit entry is replicated to all other nodes
-* the leader waits until the majority of nodes have put the entry in their log
-* Leader is now in the new state
-* Leader sends info to change to the new state which was saved in the log
-* The cluster has now come to consensus about the system state.
-* -> This is called Log Replication
+Raft has been proven to be as efficient as paxos but is structured differently.
+Diego Ongaro also claimed in his raft-paper that raft is more understandable for students
+which was verified by a study.
 
-#### Leader election
+The following chapters describe the raft algorithm in detail.
+There will also be a comparison of an implementation in **go** and **python**.
+
+#### Which problem does Raft solve?
+First of all there is a node. A node can store a single value. 
+A client now sends a request to the server(this one node). Coming to an agreement which is the new
+state is easy. The node just updates its value. But what about having multiple nodes 
+that should contain the same state? How are these nodes finding a consensus? 
+
+
+#### What are the Raft Basics?
+In order to have a working cluster multiple nodes are needed which know each other.
+A node can be in one of these three states: FOLLOWER, CANDIDATE or LEADER.
+FOLLOWER is the starting state for every node. If FOLLOWER-nodes don't hear in
+a specific time from a LEADER they can become CANDIDATE.
+ 
+The CANDIDATE requests votes from each other node in the cluster.
+Every node will answer with their vote. The CANDIDATE becomes the leader if it gets the majority
+of votes. This process is called leader election. It is described in the next chapter in detail.
+
+The cluster is now in a correct state. This includes having exactly one leader and the
+majority of nodes being reachable for the leader-node.
+
+
+All incoming changes to the system now go through the leader-node. Its job is to inform 
+all of his available follower-nodes with the new state. This is 
+accomplished with a 2-phase commit.
+
+#### 2-Phase commit
+A node can represent one value. It also has a none visible log.
+
+When a leader node sends a status update to all of his followers, the
+state change is added as an entry in the node's none visible log. The node replies 
+that it stored the value.
+The leader waits until the majority of nodes have stored the change. If he gets enough
+responses in a specific time, he sets his state to the new value. Afterwards all
+other nodes get the info to change to the new state which was saved in the log previously.
+
+The cluster now has come to consensus or agreement about the system state. This is
+called **log replication**.
+
+#### What is a leader election in depth
 * In Raft there are two timeout settings which control elections.
 * First is the election timeout.
 * The election timeout is the amount of time a follower waits until becoming a candidate.
@@ -202,3 +228,4 @@ In conclusion ...
 * https://www.elastic.co/de/
 * https://raft.github.io/raft.pdf
 * http://thesecretlivesofdata.com/raft/
+* https://lamport.azurewebsites.net/pubs/lamport-paxos.pdf
