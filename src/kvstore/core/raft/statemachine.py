@@ -14,11 +14,13 @@ class StateMachine:
             LEADER: {FOLLOWER}
         }
 
+    # processes a  transaction from state x to state y
     def next(self, next_state):
         if not self.is_transaction_valid(next_state):
             raise Exception('Invalid State transaction!')
         self.current = next_state
 
+    # check if the transaction from one status into another is valid based on the validTransactions-map
     def is_transaction_valid(self, next_state):
         next_states = self.validTransactions[self.current]
 

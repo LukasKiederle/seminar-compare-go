@@ -4,6 +4,7 @@ class State:
         self.state_id = state_id
 
     def __str__(self):
+        # switch case in python
         switcher = {
             0: "FOLLOWER",
             1: "CANDIDATE",

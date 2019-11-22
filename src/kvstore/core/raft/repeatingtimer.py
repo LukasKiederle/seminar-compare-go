@@ -1,8 +1,9 @@
 from __future__ import print_function
 
-from threading import Timer, Lock
+from threading import Timer
 
 
+# this timer is used becuase the python default timer can't be restarted
 class RepeatingTimer(object):
     interval = 0
 
@@ -25,7 +26,3 @@ class RepeatingTimer(object):
     def start(self):
         self.timer = Timer(self.interval, self.callback)
         self.timer.start()
-
-    # t = RepeatingTimer(3, hello)
-    # t.start()
-    # https://stackoverflow.com/questions/24072765/timer-cannot-restart-after-it-is-being-stopped-in-python

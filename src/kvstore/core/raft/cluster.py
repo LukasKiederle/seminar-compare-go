@@ -12,19 +12,23 @@ class Cluster:
             return self.allNodes.remove(leader_id)
         return self.allNodes
 
+    # start all nodes of cluster
     def start_all(self):
         for node in self.allNodes:
             node.start(self)
 
+    # stops all nodes of cluster
     def stop_all(self):
         for node in self.allNodes:
             node.stop()
 
+    # stop leader
     def stop_leader(self):
         leader = self.return_node_leader()
         leader.stop()
         return leader
 
+    # return node leader
     def return_node_leader(self):
         for node in self.allNodes:
             if node.is_leader():

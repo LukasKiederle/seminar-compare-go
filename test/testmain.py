@@ -1,6 +1,5 @@
 import time
 import unittest
-from asyncio import Lock
 
 from src.kvstore.core.raft.cluster import Cluster
 from src.kvstore.core.raft.constant import FOLLOWER, CANDIDATE, LEADER
@@ -13,8 +12,8 @@ class TestKvStoreImpl(unittest.TestCase):
 
     def test_store_and_get_key_value(self):
         kv_store = KvStore()
-        kv_store.setString("1", "value1")
-        self.assertEqual("value1", kv_store.getString("1"))
+        kv_store.set_string("1", "value1")
+        self.assertEqual("value1", kv_store.get_string("1"))
 
 
 class TestState(unittest.TestCase):
@@ -69,7 +68,7 @@ class TestClusterWithNodes(unittest.TestCase):
 
         cluster.stop_all()
 
-        time.sleep(2) # wait for grace to shutdown
+        time.sleep(2)  # wait for grace to shutdown
 
     def test_heartbeat(self):
         n1 = Node(0)
@@ -79,12 +78,12 @@ class TestClusterWithNodes(unittest.TestCase):
         cluster.start_all()
 
         # startHeartbeat is only allowed in leader state
-        n1.statemachine.next(CANDIDATE)
-        n1.statemachine.next(LEADER)
+        n1.state_machine.next(CANDIDATE)
+        n1.state_machine.next(LEADER)
         n1.heartbeat_timer.cancel()
         n1.heartbeat_timer.start()
 
-        time.sleep(10) # Wait 2s => check console output
+        time.sleep(10)  # Wait 2s => check console output
         n1.stop()
 
     def test_failover(self):
@@ -156,6 +155,7 @@ class TestClusterWithNodes(unittest.TestCase):
         # fails sometimes
         self.assertNotEqual(n1.election_timer.interval, n2.election_timer.interval
                             or n1.election_timer.interval, n2.election_timer.interval)
+
 
 if __name__ == '__main__':
     unittest.main()
