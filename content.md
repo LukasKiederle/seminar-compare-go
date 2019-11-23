@@ -15,9 +15,9 @@ omnipresent. For example databases like [Elastic Search](https://www.elastic.co/
 [Docker Swarm](https://docs.docker.com/engine/swarm/) need to deal with this efficiently in order to work reliable.
 
 This paper is going to reflect the technical differences between
-go and python when building a simulated cluster which persists its status
- within all of its nodes. This is accomplished with the raft algorithm which was
- introduced by Diego Ongaro and John Ousterhou in 2014.
+go and python when building a simulated cluster which contains its status
+within all of its nodes. This is accomplished with the raft algorithm which was
+introduced by Diego Ongaro and John Ousterhou in 2014.
 
 
 ## The raft algorithm

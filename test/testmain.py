@@ -127,6 +127,7 @@ class TestClusterWithNodes(unittest.TestCase):
 
         time.sleep(10)
 
+        print("Stopping leader")
         stopped_leader = cluster.stop_leader()
 
         time.sleep(10)
