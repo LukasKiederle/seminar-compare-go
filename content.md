@@ -4,8 +4,8 @@
 ## Table of Contents
 
 1. [Motivation](#motivation)
-2. [The raft cluster](#the-raft-cluster)
-3. [The raft cluster implemented](#the-raft-cluster-implemented)
+2. [The Raft cluster](#the-Raft-cluster)
+3. [The Raft cluster implemented](#the-Raft-cluster-implemented)
 3. [Conclusion](#conclusion)
 3. [Sources](#sources)
 
@@ -16,21 +16,21 @@ omnipresent. For example databases like [Elastic Search](https://www.elastic.co/
 
 This paper is going to reflect the technical differences between
 go and python when building a simulated cluster which contains its status
-within all of its nodes. This is accomplished with the raft algorithm which was
+within all of its nodes. This is accomplished with the Raft algorithm which was
 introduced by Diego Ongaro and John Ousterhou in 2014.
 
 
-## The raft algorithm
+## The Raft algorithm
 Raft is an understandable distributed consensus algorithm.
 It was created based on the consensus algorithm [paxos](https://lamport.azurewebsites.net/pubs/lamport-paxos.pdf).
 The key goal was to develop an alternative for paxos which is much easier
 to understand and programmable.
 
 Raft has been proven to be as efficient as paxos but is structured differently.
-Diego Ongaro also claimed in his raft-paper that raft is more understandable for students
+Diego Ongaro also claimed in his paper that Raft is more understandable for students
 which was verified by a study.
 
-The following chapters describe the raft algorithm in detail.
+The following chapters describe the Raft algorithm in detail.
 There will also be a comparison of an implementation in **go** and **python**.
 
 #### Which problem does Raft solve?
@@ -58,11 +58,11 @@ All incoming changes to the system now go through the leader-node. Its job is to
 all of his available follower-nodes with the new state. This is 
 accomplished with a 2-phase commit.
 
-#### 2-Phase commit
-A node can represent one value. It also has a none visible log.
+#### The 2-Phase commit
+A node can represent one value. It also has a invisible log.
 
 When a leader node sends a status update to all of his followers, the
-state change is added as an entry in the node's none visible log. The node replies 
+state change is added as an entry in the node's invisible log. The node replies 
 that it stored the value.
 The leader waits until the majority of nodes have stored the change. If he gets enough
 responses in a specific time, he sets his state to the new value. Afterwards all
@@ -72,32 +72,47 @@ The cluster now has come to consensus or agreement about the system state. This 
 called **log replication**.
 
 #### What is a leader election in depth
-* In Raft there are two timeout settings which control elections.
-* First is the election timeout.
-* The election timeout is the amount of time a follower waits until becoming a candidate.
-* election timeout is randomized
-* After the election timeout the follower becomes a candidate and starts a new election term
-, votes for himself, and sends out request votes
-* If the receiving node hasn't voted yet in this term then it votes for the candidate
-and the node resets its election timeout.
-* Once a candidate has a majority of votes it becomes leader.
-* The leader begins sending out Append Entries messages to its followers.
-* These messages are sent in intervals specified by the heartbeat timeout.
-* Followers then respond to each Append Entries message.
-* This election term will continue until a follower stops receiving heartbeats and becomes a candidate.
-* stopping the leader in a already working cluster results in a reelection
-* Only one leader can be elected per term
-* If two nodes become candidates at the same time then a split vote can occur.
-* The nodes will wait for a new election
+In Raft there are two timeout settings which control elections. One of them is the election
+timeout. The election timeout is the amount of time for a follower-node waits until
+becoming a candidate.
 
-## Parallel processing
-What are the differences from golang to python when it comes to
-parallel programming.
+After the election timeout a follower-node becomes a candidate and starts an election term.
+It then votes for itself and requests votes from all other nodes.
+If the receiving node hasn't voted yet in this term then it votes for the candidate
+and the node resets its election timeout.
+As soon as a candidate-node has more than half of the clusters votes it becomes the leader.
+
+The leader-node begins to send out Append Entries messages to all of its followers.
+These messages are sent in time periods specified by the heartbeat timeout.
+Every follower-node responds to every Append Entries message it receives.
+The leaders tenure will continue until a follower stops receiving heartbeats and
+becomes a candidate.
+
+Stopping or loosing a leader in an already working cluster ends in a reelection.
+Only one node can be elected to a leader per term.
+In order to prevent having multiple candidates at the same time
+every node has randomized and therefore different election timer times.
+Otherwise an election could result in a draw. This would just trigger a reelection
+afterwards but cost additional time.
+One more important thing is that the election timer of every node always takes longer than 
+the heartbeat timer. Otherwise a node would start an election a healthy cluster which
+makes no sense.
+
+## Basic parallel processing
+In order to implement the raft algorithm properly parallelism is need as a base.
+This chapter explain the differences of golang and python when it comes to
+parallel processing.
 
 #### Goroutines:
-In go you can just make a "thread" by writing the **go** keyword
-in front of a function like displayed in the following example.
+A "thread" in golang is called goroutine.
+This is not the same as a normal parallel processing. A goroutine can be processed concurrently
+by every statement or about every line of code. In other languages like java 
+the program can only execute whole functions parallel. This results in a finer way of
+parallelism and better performance. Overall a pc can execute much more goroutines than 
+normal threads because of this slight cutting of the code to be executed parallel.
 
+Making a "thread" by can be easily done by writing the **go** keyword
+in front of a function like displayed in the following example.
 ``` go
 package main
 
@@ -123,7 +138,7 @@ the `go func()` the result will differ. Possible results are:
 This is called asynchronous execution.
 
 To execute goroutines synchronous golang uses channels.
-In the following example almost same code is being shown but returning 
+In the following example almost the same code is being shown but returning 
 a consistent result.
 
 ```go
@@ -157,7 +172,8 @@ into `operationDone` the program is able to wait at the call
 As soon as `<-operationDone` has a value the program goes ahead.
 
 #### Python parallel programming:
-Python offers a **Thread**-Class for parallel programming.
+In python parallel programming is done with threads.
+For this python offers a **Thread**-Class.
 A class which can be used as thread looks like the following code block.
 
 ```python
@@ -189,11 +205,13 @@ if __name__ == '__main__':
 ```
 This thread is a class which has a run function that counts down
 one by one from a given value and prints every new
-decrement in the terminal. Once it has reached 0 the thread
-finishes and stops itself. To be able to call the threads synchronous
-like goland does with channels, python uses the `.join()`-method.
+decrement in the console. Once it has reached 0 the thread
+finishes and stops itself.
 
-## The raft cluster implemented
+To be able to call the threads synchronous
+like golang does with channels, python uses the `.join()`-method.
+
+## The Raft cluster implemented
 
 #### To implement
 * Node
@@ -219,13 +237,15 @@ In conclusion ...
 
 * Comparison code length
 * Code complexity
-* 
+* python threads are much slower than goroutines
+  see: https://madeddu.xyz/posts/go-py-benchmark/
 
 ## Sources
 * https://pragmacoders.com/blog/multithreading-in-go-a-tutorial
 * https://www.geeksforgeeks.org/multithreading-in-python-set-2-synchronization/
 * https://github.com/jweigend/concepts-of-programming-languages
 * https://www.elastic.co/de/
-* https://raft.github.io/raft.pdf
-* http://thesecretlivesofdata.com/raft/
+* https://Raft.github.io/Raft.pdf
+* http://thesecretlivesofdata.com/Raft/
 * https://lamport.azurewebsites.net/pubs/lamport-paxos.pdf
+* https://madeddu.xyz/posts/go-py-benchmark/
