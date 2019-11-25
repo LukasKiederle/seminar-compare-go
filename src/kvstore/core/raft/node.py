@@ -1,5 +1,5 @@
 import random
-from threading import Lock
+from threading import Lock, Thread
 
 from src.kvstore.core.raft.constant import FOLLOWER, CANDIDATE, LEADER
 from src.kvstore.core.raft.repeatingtimer import RepeatingTimer
@@ -30,17 +30,16 @@ class Node:
         with self.mutex:
             self.stopped = False
             self.cluster = cluster
-            self.election_timer.start()
+            self.election_timer.reset()
 
     # stops a node
     def stop(self):
         self.mutex = Lock()
         with self.mutex:
-            self.stopped = True
 
+            self.stopped = True
             self.heartbeat_timer.cancel()
             self.election_timer.cancel()
-
             self.state_machine.next(FOLLOWER)
 
     # this function is used when the election_timer runs out
@@ -73,9 +72,8 @@ class Node:
         else:
             print("Election was not won. Reset election timer")
             self.state_machine.next(FOLLOWER)
-        # try again, split vote or cluster down
-        self.election_timer.cancel()
-        self.election_timer.start()
+            # try again, split vote or cluster down
+            self.election_timer.reset()
 
     # election process:
     # asks for votes of all others
@@ -103,7 +101,7 @@ class Node:
             wg.done()
 
         for i, node in enumerate(nodes):
-            request_votes()
+            Thread(target=request_votes).start()
 
         wg.wait()
 
@@ -121,11 +119,9 @@ class Node:
 
     # SwitchToLeader does the state change from CANDIDATE to LEADER.
     def switch_to_leader(self):
-        self.election_timer.cancel()
-        self.heartbeat_timer.cancel()
-
         self.state_machine.next(LEADER)
-        self.heartbeat_timer.start()
+        self.election_timer.cancel()
+        self.heartbeat_timer.reset()
 
     # == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == == =
     # Leader only functions
@@ -161,7 +157,7 @@ class Node:
                     wg.done()
 
                 for i, node in enumerate(nodes):
-                    send_votes()
+                    Thread(target=send_votes).start()
 
                 wg.wait()
 
@@ -203,8 +199,7 @@ class Node:
             if entries is None or len(entries) == 0:
                 print('Heartbeat received. Reset election timer.')
                 # n.electionTimer.resetC <- true
-                self.election_timer.cancel()
-                self.election_timer.start()
+                self.election_timer.reset()
 
             else:
                 # TODO replicate logs
@@ -226,8 +221,7 @@ class Node:
             if self.stopped:
                 return self.current_term, False
 
-            self.election_timer.cancel()
-            self.election_timer.start()
+            self.election_timer.reset()
 
             # see RequestVoteRPC receiver implementation 1
             if term < self.current_term:

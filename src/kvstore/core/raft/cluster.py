@@ -50,6 +50,7 @@ class Cluster:
                 candidate_count += 1
             else:
                 raise Exception('Node is in an invalid state!')
+
         if leader_count > 1:
             raise Exception("there are multiple leaders in the cluster")
         elif leader_count == 0:
