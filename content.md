@@ -1,6 +1,5 @@
 <h1 align="center">Compare Go Parallel Programming with Python</h1>
 <p align="center">by Lukas Kiederle</p>
-
 ## Table of Contents
 
 1. [Motivation](#motivation)
@@ -41,11 +40,11 @@ that should contain the same state? How are these nodes finding a consensus?
 
 
 #### What are the Raft Basics?
-In order to have a working cluster multiple nodes are needed which know each other.
+In order to have a working cluster, multiple nodes are needed which know each other.
 A node can be in one of these three states: FOLLOWER, CANDIDATE or LEADER.
 FOLLOWER is the starting state for every node. If FOLLOWER-nodes don't hear in
 a specific time from a LEADER they can become CANDIDATE.
- 
+
 The CANDIDATE requests votes from each other node in the cluster.
 Every node will answer with their vote. The CANDIDATE becomes the leader if it gets the majority
 of votes. This process is called leader election. It is described in the next chapter in detail.
@@ -212,17 +211,25 @@ To be able to call the threads synchronous
 like golang does with channels, python uses the `.join()`-method.
 
 ## The Raft cluster implemented
+In the following tables are the essential components of a raft implementation
+described shortly. This shows a quick overview about what to implement before digging into
+the real implementation.
 
-#### To implement
-* Node
-    * request_vote()
-    * append_entries()
-* Statemachine
-* Timer
-    * election_timeout()
-    * hearbeat_timeout()
-* ReplicatedLog
-* Cluster
+| Name of class/structure   | Description  |
+|---|---|
+| State machine |  Used for the 3 states of a node. |
+| Replicated Log | Used for saving values in a node. |
+| Node  |  Represents a node. |
+| Timer | Used for timing election and heartbeat timeouts in a concurrent environment. |
+| Cluster | Clusters multiple nodes together. |
+
+##### Node implementation
+| Name of functionality  | Description  |
+|---|---|
+| request votes  |  Used for requesting votes in a election of every other node in the cluster |
+| append entries |  Used for updating the nodes value |
+| election |  Used the whole election process |
+| heartbeat |  Used for heartbeat messages |
 
 #### In Go:
 * 
