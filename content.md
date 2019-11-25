@@ -143,6 +143,20 @@ This thread is a class which has a run function that counts down one by one from
 
 To be able to call the threads synchronous like golang does with channels, python uses the `.join()`-method.
 
+#### Locking
+
+Another tool for synchronizing is locking. The next two codeblocks display a sample in python (1.) and go(2.). `Defer` and `with` are used to defer the executing of the statement until the surrounding function returns. In both examples a function an attribute is locked first and afterwards released again. This is needed a lot in the raft algorithm.
+
+```python
+self.mutex = Lock()
+with self.mutex:
+```
+
+```go
+n.mutex.Lock()
+defer n.mutex.Unlock()
+```
+
 ## The raft algorithm implemented
 In the following tables are the essential components of a raft implementation described shortly. This shows a quick overview about what to implement before digging into the real implementation.
 
@@ -154,7 +168,7 @@ In the following tables are the essential components of a raft implementation de
 | Timer | Used for election and heartbeat timeouts in a concurrent environment. |
 | Cluster | Clusters multiple nodes together. |
 
-##### Node implementation
+##### Node functions that need to be implemented:
 | Name of functionality | Description                                                  |
 | --------------------- | :----------------------------------------------------------- |
 | request votes         | Used for requesting votes from every other node in the cluster in an election . |
@@ -162,16 +176,26 @@ In the following tables are the essential components of a raft implementation de
 | election              | Functionality which is used the whole election process.      |
 | heartbeat             | Functionality which is used for heartbeat messages.          |
 
-##### Custom timer implementation in python because of this code:
-```python
-    def run(self):
-        self.finished.wait(self.interval)
-        if not self.finished.is_set():
-            self.function(*self.args, **self.kwargs)
-        self.finished.set()
-```
+#### Comparing the implementation in general
+
+First of all the python and the go implementation have both about the same code length. While this is the case, the code complexity differs. In go there is some more trickiness when working with goroutines, channels and node-synchronization. Other than that the functionality which is needed for the raft algorithm is almost build in right from the start. Only a timer that is concurrent and can be restarted is missing but so it is in python too. This will receive some attention later on in the chapter. 
+
+The python implementation is as already mentioned a little bit less complex. Understanding the code afterwards is much easier in python because there are not as many channels - just normal functions (which are of course also threads). Also there can occur some confusion if the reader is not that familiar with call-by-value and call-by-reference when reading the go-code. Python does this normally for you. Even though python is easier for realizing the raft algorithm, go has a way better performance. It gets this just because goroutines are so much faster than a python thread. Therefore golang has the potential to start more nodes concurrently. 
+
+Another difference between go and python is that python does not support interfaces. This leads to a dissimilar implementation of the cluster and the statemachine, but is not worth mentioning in this short paper. 
+
+#### Comparing the execute election function
+
+In order to understand in depth what distinguishes python and go, a code sample is needed.  
+
+The function works in both languages about the same. First of all there is a console log message that says that the election process starts. Afterwards the node which starts this, is voting for itself. Next is a synchronization tool - the waitgroup. It's used for waiting on a specific amount of threads, processes or goroutines. 
+
+The function asks over the cluster-attribute for all other nodes with`nodes := n.cluster.GetRemoteFollowers(n.id)`(go) and ` nodes = self.cluster.get_remote_followers(self.id)`(python). This is used for counting how many nodes to call. This number is used for the waitgroup. The next statements in between `wg.add()` and `wg.wait()` are used for calling all other nodes for votes. Finally the function checks if the election was valid. This means that the majority of nodes have chosen this node. The result is return for calling function.
+
+Even though these functions might look identical, there is still some difference other than syntactical. The `requestVote()`is called in go with a go-prefixed function. In python `Thread(target=request_votes).start()`is needed to accomplish about the same result. Again, this is a goroutine vs a thread.  The waitgroup mechanism is the same both. In python is a custom implementation needed though. This is explained in a later chapter.
 
 ##### Execute election in go
+
 ```go
 func (n *Node) executeElection() bool {
 	n.log("-> Election")
@@ -248,8 +272,32 @@ func (n *Node) executeElection() bool {
         print('<- Election:' + str(election_won))
 
         return election_won
-
 ```
+#### Additional custom implementations
+
+##### Custom implementation of timer:
+
+As already mentioned previously, a custom implementation is needed in both languages in order to have a restartable timer. This is used for the two multithreadable timers (election timer and heartbeat timer) a node has. 
+
+The coding sample is python core code. It is the run function of the threadable timer class. The one line `if not self.finished.is_set():` blocks restarting the timer again. 
+
+```python
+    def run(self):
+        self.finished.wait(self.interval)
+        if not self.finished.is_set():
+            self.function(*self.args, **self.kwargs)
+        self.finished.set()
+```
+
+This can be achieved for example with this code.
+
+```python
+    def start(self):
+        self.timer = Timer(self.interval, self.callback)
+        self.timer.start()
+```
+
+In this case the start function is part of a class which has timer as an attribute. Every time the timer is being started a new threadable timer is being instantiated.
 
 ##### WaitGroup in Python
 ```python
@@ -282,31 +330,7 @@ class WaitGroup(object):
         while self.count > 0:
             self.cv.wait()
         self.cv.release()
-
 ```
-
-
-
-
-**to compare:**
-
-* statemachine, cluster is the same in go and python
-	* same code
-	* complexity
-	* Python uses classes
-	* Go uses structures
-* python doesn't use interfaces -> also difference in statemachine and cluster
-* node:
-	* the sourcecode is about the same in both languages with different syntax
-	* both languages need custom implementation for threadable timers
-	* python needs a custom implementation for wait groups
-	* **defer** in go is the same as **with** in python
-	* present custom timer in python
-	* present waiting group implementation in python
-	* compare go vs python execute election
-		* 
-
-#### Differences
 
 ## Conclusion
 In conclusion ...
@@ -314,7 +338,7 @@ In conclusion ...
 * Comparison code length
 * Code complexity
 * Python is much easier to program
-* the code is the same except of classes/structures and channels/threads
+* the code is the same except of  syntax: classes/structures and channels/threads
 * python threads are much slower than goroutines
   see: https://madeddu.xyz/posts/go-py-benchmark/
 
