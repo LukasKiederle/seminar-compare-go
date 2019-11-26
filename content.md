@@ -6,7 +6,7 @@
 1. [Motivation](#motivation)
 2. [The Raft algorithm](#the-Raft-algorithm)
 3. [Basic parallel processing](#basic-parallel-processing)
-3. [The Raft algorithm implemented](#the-Raft-cluster-implemented)
+3. [The Raft algorithm implemented](#the-Raft-algorithm-implemented)
 3. [Conclusion](#conclusion)
 3. [Sources](#sources)
 
