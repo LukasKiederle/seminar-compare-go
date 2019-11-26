@@ -1,5 +1,6 @@
 <h1 align="center">Compare Go Parallel Programming with Python</h1>
 <p align="center">by Lukas Kiederle</p>
+
 ## Table of Contents
 
 1. [Motivation](#motivation)
