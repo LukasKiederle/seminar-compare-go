@@ -180,7 +180,7 @@ In the following tables are the essential components of a raft implementation de
 
 First of all the python and the go implementation have both about the same code length. While this is the case, the code complexity differs. In go there is some more trickiness when working with goroutines, channels and node-synchronization. Other than that the functionality which is needed for the raft algorithm is almost build in right from the start. Only a timer that is concurrent and can be restarted is missing but so it is in python too. This will receive some attention later on in the chapter. 
 
-The python implementation is as already mentioned a little bit less complex. Understanding the code afterwards is much easier in python because there are not as many channels - just normal functions (which are of course also threads). Also there can occur some confusion if the reader is not that familiar with call-by-value and call-by-reference when reading the go-code. Python does this normally for you. Even though python is easier for realizing the raft algorithm, go has a way better performance. It gets this just because goroutines are so much faster than a python thread. Therefore golang has the potential to start more nodes concurrently. 
+The python implementation is as already mentioned a little bit less complex. Understanding the code afterwards is much easier in python because there are not as many channels - just normal functions (which are of course also threads). Also there can occur some confusion if the reader is not that familiar with call-by-value and call-by-reference when reading the go-code. Python does this normally for you. Even though python is easier for realizing the raft algorithm, go has a way better performance. It gets this just because goroutines are so much faster than a python thread. Therefore golang has the potential to start more nodes concurrently. The difference in performance and scalability was already examined by a lot of people. One good paper about this is [GoLang vs Python: deep dive into the concurrency](https://madeddu.xyz/posts/go-py-benchmark/).
 
 Another difference between go and python is that python does not support interfaces. This leads to a dissimilar implementation of the cluster and the statemachine, but is not worth mentioning in this short paper. 
 
@@ -191,8 +191,6 @@ In order to understand in depth what distinguishes python and go, a code sample 
 The function works in both languages about the same. First of all there is a console log message that says that the election process starts. Afterwards the node which starts this, is voting for itself. Next is a synchronization tool - the waitgroup. It's used for waiting on a specific amount of threads, processes or goroutines. 
 
 The function asks over the cluster-attribute for all other nodes with`nodes := n.cluster.GetRemoteFollowers(n.id)`(go) and ` nodes = self.cluster.get_remote_followers(self.id)`(python). This is used for counting how many nodes to call. This number is used for the waitgroup. The next statements in between `wg.add()` and `wg.wait()` are used for calling all other nodes for votes. Finally the function checks if the election was valid. This means that the majority of nodes have chosen this node. The result is return for calling function.
-
-Even though these functions might look identical, there is still some difference other than syntactical. The `requestVote()`is called in go with a go-prefixed function. In python `Thread(target=request_votes).start()`is needed to accomplish about the same result. Again, this is a goroutine vs a thread.  The waitgroup mechanism is the same both. In python is a custom implementation needed though. This is explained in a later chapter.
 
 ##### Execute election in go
 
@@ -273,13 +271,15 @@ func (n *Node) executeElection() bool {
 
         return election_won
 ```
+Even though these functions might look identical, there is still some difference other than syntactical. The `requestVote()`is called in golang with a go-prefixed function. In python `Thread(target=request_votes).start()`is needed to accomplish about the same result. Again, this is a goroutine versus a thread.  The waitgroup mechanism is the same in both languages. In python is a custom implementation needed though. The code is displayed in the following chapter.
+
 #### Additional custom implementations
 
 ##### Custom implementation of timer:
 
 As already mentioned previously, a custom implementation is needed in both languages in order to have a restartable timer. This is used for the two multithreadable timers (election timer and heartbeat timer) a node has. 
 
-The coding sample is python core code. It is the run function of the threadable timer class. The one line `if not self.finished.is_set():` blocks restarting the timer again. 
+The coding sample is python core code of the threadable timer class. The one line `if not self.finished.is_set():` blocks restarting the timer again. 
 
 ```python
     def run(self):
@@ -289,7 +289,7 @@ The coding sample is python core code. It is the run function of the threadable 
         self.finished.set()
 ```
 
-This can be achieved for example with this code.
+The restart function can be achieved for example with this code.
 
 ```python
     def start(self):
@@ -297,9 +297,12 @@ This can be achieved for example with this code.
         self.timer.start()
 ```
 
-In this case the start function is part of a class which has timer as an attribute. Every time the timer is being started a new threadable timer is being instantiated.
+In this case the start function is part of a class which has timer as an attribute. Every time the timer is being started a new threadable timer is instantiated.
 
 ##### WaitGroup in Python
+
+The following is a simplified custom version for a waitgroup functionality from [github](https://gist.github.com/pteichman/84b92ae7cef0ab98f5a8 ). Basically the waitgroup is a class which has a counter and a condition. With the add function a number of tasks to  wait for can be added. The wait function just waits until the counter hits zero. This can only happen, when the a task that was finished calls the done function.
+
 ```python
 import threading
 
@@ -333,14 +336,7 @@ class WaitGroup(object):
 ```
 
 ## Conclusion
-In conclusion ...
-
-* Comparison code length
-* Code complexity
-* Python is much easier to program
-* the code is the same except of  syntax: classes/structures and channels/threads
-* python threads are much slower than goroutines
-  see: https://madeddu.xyz/posts/go-py-benchmark/
+In conclusion implementing the raft algorithm in go and in python is possible. The code needed for that is about equal in length. On the one hand python allows forgiving syntax while on the other hand golang is more strictly with that. Other than that multithreading/concurrency is also different. Python carries out parallelism with classic threads. Go on the other hand uses goroutines which are much more scalable and less resource consuming. Therefore the same implementation in go can simulate much bigger clusters with the raft algorithm than with python. The downside of go concurrent programming is that it's a little bit harder to understand. It brings in more opportunities but also lead to more complexity.
 
 ## Sources
 * https://pragmacoders.com/blog/multithreading-in-go-a-tutorial
