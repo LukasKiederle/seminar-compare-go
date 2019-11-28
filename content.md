@@ -23,7 +23,7 @@ Raft has been proven to be as efficient as paxos, but is structured differently.
 The following chapters describe the raft algorithm in detail. There will also be a comparison of an implementation in **go** and **python**.
 
 #### Which problem does raft solve?
-First of all there is a node. A node can store a single value.  A client now sends a request to the server(this one node). Coming to an agreement which is the new state is easy. The node just updates its value. But what about having multiple nodes, that should contain the same state? How are these nodes finding a consensus? 
+First of all there is a node. A node can store a single value.  A client now sends a request to the server (this one node). Coming to an agreement which is the new state is easy. The node just updates its value. But what about having multiple nodes, that should contain the same state? How are these nodes finding a consensus? 
 
 
 #### What are the Raft Basics?
@@ -53,7 +53,7 @@ The leader-node begins to send out Append Entries messages to all of its followe
 Stopping or loosing a leader in an already working cluster ends in a reelection. Only one node can be elected to a leader per term. In order to prevent having multiple candidates at the same time every node has randomized and therefore different election timer times. Otherwise an election could result in a draw. This would just trigger a reelection afterwards but cost additional time. One more important thing is that the election timer of every node always takes longer than the heartbeat timer. Otherwise a node would start an election a healthy cluster which makes no sense.
 
 ## Basic parallel processing
-In order to implement the raft algorithm properly, parallelism is need as a base. This chapter explains the differences of golang and python, when it comes to parallel processing.
+In order to implement the raft algorithm properly, parallelism is needed as a base. This chapter explains the differences of golang and python, when it comes to parallel processing.
 
 #### Goroutines:
 A "thread" in golang is called goroutine. This is not the same as a normal parallel processing. A goroutine can be processed concurrently by every statement or about every line of code. In other languages like java  the program can only execute whole functions parallel. This results in a finer way of parallelism and better performance. Overall a pc can execute much more goroutines than normal threads, because of this slight cutting of the code to be executed parallel.
@@ -179,7 +179,7 @@ In the following tables are the essential components of a raft implementation de
 
 First of all the python and the go implementation have both about the same code length. While this is the case, the code complexity differs. In go there is some more trickiness, when working with goroutines, channels and node-synchronization. Other than that, the functionality, which is needed for the raft algorithm, is almost build in right from the start. Only a timer that is concurrent and can be restarted, is missing but so it is in python too. This will receive some attention later on in the chapter. 
 
-The python implementation is, as already mentioned, a little bit less complex. Understanding the code afterwards is much easier in python because there are not as many channels - just normal functions (which are of course also threads). Also, there can occur some confusion, if the reader is not that familiar with call-by-value and call-by-reference, when reading the go-code. Python does this normally for you. Even though python is easier for realizing the raft algorithm, go has a way better performance. It gets this just because goroutines are so much faster than python threads. Therefore, golang has the potential to start more nodes concurrently. The difference in performance and scalability was already examined by a lot of people. One good paper about this is [GoLang vs Python: deep dive into the concurrency](https://madeddu.xyz/posts/go-py-benchmark/). The author compares the two languages with a sorting algorithm and presents his result in a benchmark diagram.
+The python implementation is, as already mentioned, a little bit less complex. Understanding the code afterwards is much easier in python because there are not as many channels - just normal functions (which are of course also threads). Also, there can occur some confusion, if the reader is not that familiar with call-by-value and call-by-reference, when reading the go-code. Python does this normally for you. Even though python is easier for realizing the raft algorithm, go has a way better performance because goroutines are so much faster than python threads. Therefore, golang has the potential to start more nodes concurrently. The difference in performance and scalability was already examined by a lot of people. One good paper about this is [GoLang vs Python: deep dive into the concurrency](https://madeddu.xyz/posts/go-py-benchmark/). The author compares the two languages with a sorting algorithm and presents his result in a benchmark diagram.
 
 Another difference between go and python is, that python does not support interfaces. This leads to a dissimilar implementation of the cluster and the statemachine, but is not worth mentioning in this short paper. 
 
@@ -335,7 +335,7 @@ class WaitGroup(object):
 ```
 
 ## Conclusion
-In conclusion, implementing the raft algorithm in go and in python is possible. The code needed for that, is about equal in length. On the one hand, python allows forgiving syntax while on the other hand golang is more strictly with that. Other than that multithreading/concurrency is also different. Python carries out parallelism with classic threads. Go on the other hand uses goroutines, which are much more scalable and less resource consuming. Therefore, the same implementation in go can simulate much bigger clusters with the raft algorithm, than with python. The downside of go concurrent programming is, that it's a little bit harder to understand. It brings in more opportunities but also leads to more complexity.
+In conclusion, implementing the raft algorithm in go and in python is possible. The code needed for that, is about equal in length. On the one hand, python allows forgiving syntax while on the other hand golang is more strict with that. Other than that multithreading/concurrency is also different. Python carries out parallelism with classic threads. Go on the other hand uses goroutines, which are much more scalable and less resource consuming. Therefore, the same implementation in go can simulate much bigger clusters with the raft algorithm, than with python. The downside of go concurrent programming is, that it's a little bit harder to understand. It brings in more opportunities but also leads to more complexity.
 
 ## Sources
 * https://pragmacoders.com/blog/multithreading-in-go-a-tutorial
