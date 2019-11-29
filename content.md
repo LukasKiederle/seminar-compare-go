@@ -342,8 +342,8 @@ In conclusion, implementing the raft algorithm in go and in python is possible. 
 * https://www.geeksforgeeks.org/multithreading-in-python-set-2-synchronization/
 * https://github.com/jweigend/concepts-of-programming-languages
 * https://www.elastic.co/de/
-* https://Raft.github.io/Raft.pdf
-* http://thesecretlivesofdata.com/Raft/
+* https://raft.github.io/raft.pdf
+* http://thesecretlivesofdata.com/raft/
 * https://lamport.azurewebsites.net/pubs/lamport-paxos.pdf
 * https://madeddu.xyz/posts/go-py-benchmark/
 * https://gist.github.com/pteichman/84b92ae7cef0ab98f5a8 
