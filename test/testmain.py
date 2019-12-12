@@ -80,8 +80,8 @@ class TestClusterWithNodes(unittest.TestCase):
         # startHeartbeat is only allowed in leader state
         n1.state_machine.next(CANDIDATE)
         n1.state_machine.next(LEADER)
-        n1.heartbeat_timer.cancel()
-        n1.heartbeat_timer.start()
+        n1.election_timer.cancel()
+        n1.heartbeat_timer.reset()
 
         time.sleep(10)  # Wait 2s => check console output
         n1.stop()
@@ -98,17 +98,12 @@ class TestClusterWithNodes(unittest.TestCase):
         cluster = Cluster(nodes)
 
         cluster.start_all()
+        time.sleep(10)
         cluster.stop_all()
-        time.sleep(5)
-        cluster.stop_all()
-
-        time.sleep(5)
-
-        cluster.stop_leader()
 
         time.sleep(10)
 
-        # should fail
+        # Produces error
         ok, err = cluster.check()
         self.assertTrue(not ok)
 
