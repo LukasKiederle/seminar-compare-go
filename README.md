@@ -1,7 +1,9 @@
 # seminar-compare-go
 ## Setup:
+- clone repo
 - Install Jetbrains PyCharm Ide. This automatically installs python 3.6.
 - If not, install it in the setting -> project interpreter settings.
+- open project
 - Open the [testmain.py](https://github.com/LukasKiederle/seminar-compare-go/blob/master/test/testmain.py) file
 - call the test functions and take a look at the console output
 - Running this program just from cli is a little bit harder to achieve. If it is your desired way
