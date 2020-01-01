@@ -270,7 +270,7 @@ func (n *Node) executeElection() bool {
 
         return election_won
 ```
-Even though these functions might look identical, there is still some difference other than syntactical. The `requestVote()`is called in Golang with a go-prefixed function. In Python `Thread(target=request_votes).start()`is needed to accomplish about the same result. Again, this is a Goroutine versus a thread.  The waitgroup mechanism is the same in both languages. However, a custom implementation is needed in Python. The code is displayed in the following chapter.
+Even though these functions might look identical, there is still some difference other than syntactical. The `requestVote()` in Golang is called  with a go-prefixed function. In Python `Thread(target=request_votes).start()`is needed to accomplish about the same result. Again, this is a Goroutine versus a thread.  The Waitgroup mechanism is the same in both languages. However, a custom implementation is needed in Python. The code is displayed in the following chapter.
 
 #### Additional custom implementations
 
@@ -300,7 +300,7 @@ In this case the start function is part of a class which has timer as an attribu
 
 ##### WaitGroup in Python
 
-The following is a simplified custom version for a waitgroup functionality from [github](https://gist.github.com/pteichman/84b92ae7cef0ab98f5a8 ). Basically the waitgroup is a class which has a counter and a condition. With the add function, a number of tasks to wait for, can be added. The wait function just waits until the counter hits zero. This can only happen, when the a task that was finished calls the done function.
+The following is a simplified custom version for a Waitgroup functionality from [github](https://gist.github.com/pteichman/84b92ae7cef0ab98f5a8 ). Basically the Waitgroup is a class which has a counter and a condition. With the add function, a number of tasks to wait for, can be added. The wait function just waits until the counter hits zero. This can only happen, when a task that has finished calls the `done` function.
 
 ```python
 import threading
